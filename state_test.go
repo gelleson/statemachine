@@ -22,6 +22,7 @@ type GenericHandler[T Event] struct {
 }
 
 func (h *GenericHandler[T]) Execute(ctx context.Context, event T) error {
+	fmt.Println("generic handler", event.EventType())
 	return nil
 }
 
@@ -134,7 +135,17 @@ func setupStateMachine() *StateMachine {
 	// Define events
 
 	// Initialize the state machine
-	sm := NewStateMachine("not_submitted")
+	sm := NewStateMachine(
+		"not_submitted",
+		WithPreTransitionMiddlewares(func(ctx context.Context, event Event) error {
+			fmt.Println("pre transition middleware")
+			return nil
+		}),
+		WithPostTransitionMiddlewares(func(ctx context.Context, event Event) error {
+			fmt.Println("post transition middleware")
+			return nil
+		}),
+	)
 
 	// Register handlers
 	RegisterHandler[*SubmitInitiateEvent](sm, &GenericHandler[*SubmitInitiateEvent]{})

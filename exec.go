@@ -33,8 +33,19 @@ func Execute[T Event](ctx context.Context, sm *StateMachine, event T) error {
 		return fmt.Errorf("invalid handler type for event: %s", event.EventType())
 	}
 
+	for _, m := range sm.mw.PreTransitionMiddlewares {
+		if err := m(ctx, event); err != nil {
+			return err
+		}
+	}
 	if err := typedHandler.Execute(ctx, event); err != nil {
 		return fmt.Errorf("handler execution failed: %w", err)
+	}
+
+	for _, m := range sm.mw.PostTransitionMiddlewares {
+		if err := m(ctx, event); err != nil {
+			return err
+		}
 	}
 
 	// Update state

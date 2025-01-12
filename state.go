@@ -28,12 +28,18 @@ type TransitionRule struct {
 	Guard     func(context.Context, Event) bool // optional condition
 }
 
+type MiddlewareConfig struct {
+	PreTransitionMiddlewares  []func(context.Context, Event) error
+	PostTransitionMiddlewares []func(context.Context, Event) error
+}
+
 // StateMachine handles different types of events with their corresponding handlers
 type StateMachine struct {
 	handlers    map[string]any
 	transitions map[State][]TransitionRule
 	state       State
 	mu          sync.RWMutex
+	mw          MiddlewareConfig
 }
 
 // StateMachineBuilder helps configure the state machine
@@ -45,12 +51,19 @@ type StateMachineBuilder struct {
 }
 
 // NewStateMachine creates a new instance of StateMachine
-func NewStateMachine(initialState State) *StateMachine {
-	return &StateMachine{
-		handlers:    make(map[string]any),
-		transitions: make(map[State][]TransitionRule),
-		state:       initialState,
-	}
+func NewStateMachine(initialState State, options ...optionFn) *StateMachine {
+	return applyOptions(
+		&StateMachine{
+			handlers:    make(map[string]any),
+			transitions: make(map[State][]TransitionRule),
+			state:       initialState,
+			mw: MiddlewareConfig{
+				PreTransitionMiddlewares:  []func(context.Context, Event) error{},
+				PostTransitionMiddlewares: []func(context.Context, Event) error{},
+			},
+		},
+		options,
+	)
 }
 
 // From starts defining a transition from a state
